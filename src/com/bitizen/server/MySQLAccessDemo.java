@@ -48,7 +48,7 @@ public class MySQLAccessDemo {
 				System.out.println("\thostName = " + hostName);
 			}
 			
-			rs = dbAccess.retrieveTeams();
+			rs = dbAccess.retrieveTeamNames();
 			System.out.println("Display all results in Matches table:");
 			while(rs.next()){
 				String teamName = rs.getString("TeamName");

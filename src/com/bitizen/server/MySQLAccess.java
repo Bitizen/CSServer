@@ -43,23 +43,6 @@ public class MySQLAccess {
 	}
 	
 	
-	public void update(String query){
-		try{
-			stmt.executeUpdate(query); 
-		}catch(SQLException e){
-			e.printStackTrace();
-		}	
-	}
-	
-	public ResultSet retrieve(String query){
-		try{
-			rs = stmt.executeQuery(query);
-		}catch(SQLException e){
-			e.printStackTrace();
-		}
-		return rs;
-	}
-	
 	public ResultSet retrieveMatches(){
 		try {
 			cs = con.prepareCall("{call returnHostNames()}");
@@ -71,7 +54,7 @@ public class MySQLAccess {
 		return rs;
 	}
 	
-	public ResultSet retrieveTeams(){
+	public ResultSet retrieveTeamNames(){
 		try {
 			cs = con.prepareCall("{call returnTeamNames()}");
 			rs = cs.executeQuery();
@@ -80,6 +63,43 @@ public class MySQLAccess {
 		}
 		
 		return rs;		
+	}	
+	
+	public ResultSet retrievePlayersInTeam(String teamName){
+		try {
+			cs = con.prepareCall("{call returnPlayersInATeam(?)}");
+			cs.setString(1, teamName);
+			rs = cs.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return rs;		
+	}
+	
+	public void setStatusToReady(String username){
+		try {
+			cs = con.prepareCall("{call setStatusToReady(?)}");
+			cs.setString(1, username);
+			cs.execute();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public Boolean allPlayersAreReady(String matchName){
+		try {
+			cs = con.prepareCall("{call allPlayersAreReady(?)}");
+			cs.setString(1, matchName);
+			
+			if(cs.executeQuery().absolute(1)){
+				return cs.getBoolean("aBooleanResult");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+		
 	}
 	
 	public Boolean usernameIsTaken(String username){
