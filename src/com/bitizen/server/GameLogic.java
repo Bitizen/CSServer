@@ -2,20 +2,28 @@ package com.bitizen.server;
 
 
 public class GameLogic {
-	private static final int LOGIN_USERNAME 	= 0;
-	private static final int VIEW_MATCHES 		= 1;
-	private static final int VIEW_TEAMS 		= 2;
-	private static final int VIEW_LOBBY  		= 3;
-	//private static final int READY_ALL 			= 4;
-	//private static final int ONGOING_MATCH		= 5;
+	private static final int GET_USERNAME 		= 0;
+	private static final int LOGIN_USERNAME 	= 1;
+	private static final int VIEW_MATCHES 		= 2;
+	private static final int GET_USERMATCH		= 3;
+	private static final int VIEW_TEAMS 		= 4;
+	private static final int GET_USERTEAM		= 5;
+	private static final int VIEW_LOBBY  		= 6;
+	private static final int WAITING_READYUSER	= 7;
+	private static final int WAITING_READYMATCH	= 8;
+	private static final int GAME_START 		= 9;
 	
+	private static final String KEY_GET_USERNAME	= "username: ";
 	private static final String KEY_USERNAME_AVAIL 	= "uname available";
 	private static final String KEY_USERNAME_TAKEN 	= "uname taken";
 	private static final String KEY_MATCH_AVAIL 	= "match available";
 	private static final String KEY_MATCH_FULL 		= "match full";
 	private static final String KEY_TEAM_AVAIL 		= "team available";
 	private static final String KEY_TEAM_FULL 		= "team full";
-
+	private static final String KEY_INVALID			= "invalid";
+	private static final String KEY_READY_USER 		= "waiting for user ready...";
+	private static final String KEY_READY_MATCH 	= "waiting for match ready...";
+	private static final String KEY_START_GAME 		= "start game";
 	private int state = LOGIN_USERNAME;
 
 	private String userName =  null;
@@ -38,8 +46,11 @@ public class GameLogic {
 			if(clientRequest != null && clientRequest.equalsIgnoreCase("exit")) {
 				return "exit";
 			}
-
-			if(state == LOGIN_USERNAME) {
+			if(state == GET_USERNAME){
+				reply = KEY_GET_USERNAME;
+				state = LOGIN_USERNAME;
+			}
+			else if(state == LOGIN_USERNAME) {
 				userName = clientRequest;
 				
 				if( !dbAccess.usernameIsTaken(userName) ){
@@ -52,6 +63,13 @@ public class GameLogic {
 				}
 			}
 			else if(state == VIEW_MATCHES){
+				
+				while (dbAccess.retrieveMatches().next()) {              
+					reply = dbAccess.retrieveMatches().getString("CM.HOSTNAME");
+				}
+				state = GET_USERMATCH;
+			}
+			else if(state == GET_USERMATCH){
 				userMatch = clientRequest;
 				
 				if( !dbAccess.matchIsFull(userMatch) ){
@@ -64,6 +82,15 @@ public class GameLogic {
 				}
 			}
 			else if(state == VIEW_TEAMS){
+				reply = "Teams: ";
+				state = GET_USERTEAM;
+				/*
+				while(dbAccess.retrieveTeamNames().next()){
+					reply = dbAccess.retrieveTeamNames().getString("CM.TEAMNAME");
+				} */
+				
+			}
+			else if(state == GET_USERTEAM){
 				userTeam = clientRequest;
 				
 				if( !dbAccess.teamIsFull(userTeam) ){
@@ -75,9 +102,37 @@ public class GameLogic {
 					reply = KEY_TEAM_FULL;
 				}
 			}
-			
+			else if(state == VIEW_LOBBY){
+				userTeam = clientRequest;
+				reply = "Team A: ";
+				while(dbAccess.retrievePlayersInTeam("A").next()){
+					reply = dbAccess.retrievePlayersInTeam("A").getString("USERNAME");
+				}
+				
+				reply = "Team B: ";
+				while(dbAccess.retrievePlayersInTeam("B").next()){
+					reply = dbAccess.retrievePlayersInTeam("B").getString("USERNAME");
+				}
+				state = WAITING_READYUSER;
+			}		
+			else if(state == WAITING_READYUSER){
+				reply = KEY_READY_USER;
+				
+				dbAccess.setStatusToReady(userName);
+				
+				state = WAITING_READYMATCH;
+			}
+			else if(state == WAITING_READYMATCH){
+				reply = KEY_READY_MATCH;
+				if(dbAccess.allPlayersAreReady()){
+					state = GAME_START;
+				}
+			}
+			else if(state == GAME_START){
+				reply = KEY_START_GAME;
+			}
 			else {
-				reply = "invalid";
+				reply = KEY_INVALID;
 			}
 		} catch(Exception e) {
 			System.out.println("input process falied: " + e.getMessage());
@@ -87,72 +142,3 @@ public class GameLogic {
 		return reply;
 	}
 }
-	/*
-	private static final int LoginUserName = 0;
-	private static final int LoginPassword = 1;
-	private static final int AuthenticateUser = 2;
-	private static final int AuthSuccess   = 3;
-	 
-	
-	private static final int LoginUserName = 0;			//Login and Verify available username
-	private static final int ViewMatches = 1;			//View Matches, Select Match, Verify if not full
-	private static final int ViewTeams = 2;				//View Teams, Select Team, Verify if not full
-	private static final int ViewLobby = 3;				//View Lobby (idle and ready)
-	
-	private int state = LoginUserName;
-
-	private String userName =  null;
-	private String userMatch =  null;
-	private String userTeam =  null;
-
-	
-	
-	public String processInput(String clientRequest) {
-		String reply = null;
-		try {
-			if(clientRequest != null && clientRequest.equalsIgnoreCase("login")) {
-				state = ViewMatches;
-			}
-			if(clientRequest != null && clientRequest.equalsIgnoreCase("exit")) {
-				return "exit";
-			}
-
-			if(state == LoginUserName) {
-				userName = clientRequest;
-				if(userName.equalsIgnoreCase("Kashka")) { 
-				// ask webserver if username is taken (via php, JSONParser)
-					reply = "Login success.";
-					state = ViewMatches;
-				} else {
-					reply = "Login fail.";
-				}
-			} else if(state == ViewMatches) {
-				// Output matches
-				// ask webserver for list of hosts
-				// Choose match, CHECK IF FULL
-				userMatch = clientRequest;
-				if(userMatch.equalsIgnoreCase("Dice")) { 
-					reply = "Match chosen success.";
-					state = ViewTeams;
-				} else {
-					reply = "Match full.";
-				}
-			} else if(state == ViewTeams) {
-				// Choose team, CHECK IF FULL
-				userTeam = clientRequest;
-				if(userTeam.equalsIgnoreCase("A")) { 
-					reply = "Team chosen success.";
-					state = ViewLobby;
-				} else {
-					reply = "Team full.";
-				}
-			}
-		} catch(Exception e) {
-			System.out.println("input process failed: " + e.getMessage());
-			return "exit";
-		}
-
-		return reply;
-	}
-	}
-	*/
