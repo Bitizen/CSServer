@@ -2,38 +2,81 @@ package com.bitizen.server;
 
 
 public class GameLogic {
-	private static final int LoginUserName = 0;
-	private static final int LoginPassword = 1;
-	private static final int AuthenticateUser = 2;
-	private static final int AuthSuccess   = 3;
+	private static final int LOGIN_USERNAME 	= 0;
+	private static final int VIEW_MATCHES 		= 1;
+	private static final int VIEW_TEAMS 		= 2;
+	private static final int VIEW_LOBBY  		= 3;
+	//private static final int READY_ALL 			= 4;
+	//private static final int ONGOING_MATCH		= 5;
+	
+	private static final String KEY_USERNAME_AVAIL 	= "uname available";
+	private static final String KEY_USERNAME_TAKEN 	= "uname taken";
+	private static final String KEY_MATCH_AVAIL 	= "match available";
+	private static final String KEY_MATCH_FULL 		= "match full";
+	private static final String KEY_TEAM_AVAIL 		= "team available";
+	private static final String KEY_TEAM_FULL 		= "team full";
 
-	private int state = LoginUserName;
+	private int state = LOGIN_USERNAME;
 
 	private String userName =  null;
+	private String userMatch = null;
+	private String userTeam = null;
+	
+	private MySQLAccess dbAccess;
 
+
+	public GameLogic(){
+		dbAccess = new MySQLAccess();
+	}
+		
 	public String processInput(String clientRequest) {
 		String reply = null;
 		try {
 			if(clientRequest != null && clientRequest.equalsIgnoreCase("login")) {
-				state = LoginPassword;
-			}if(clientRequest != null && clientRequest.equalsIgnoreCase("exit")) {
+				state = LOGIN_USERNAME;
+			}
+			if(clientRequest != null && clientRequest.equalsIgnoreCase("exit")) {
 				return "exit";
 			}
 
-			if(state == LoginUserName) {
-				reply = "username: ";
-				state = AuthenticateUser;
-			} else if(state == AuthenticateUser) {
+			if(state == LOGIN_USERNAME) {
 				userName = clientRequest;
 				
-				if(userName.equalsIgnoreCase("kashka")) { 
-					reply = "success";
-					state = AuthSuccess;
-				} else {
-					reply = "taken. username:";
-					state = LoginUserName;
+				if( !dbAccess.usernameIsTaken(userName) ){
+					dbAccess.addUsername(userName);
+					reply = KEY_USERNAME_AVAIL;
+					state = VIEW_MATCHES;
 				}
-			} else {
+				else{
+					reply = KEY_USERNAME_TAKEN;
+				}
+			}
+			else if(state == VIEW_MATCHES){
+				userMatch = clientRequest;
+				
+				if( !dbAccess.matchIsFull(userMatch) ){
+					dbAccess.joinMatch(userName, userMatch);
+					reply = KEY_MATCH_AVAIL;
+					state = VIEW_TEAMS;
+				}
+				else{
+					reply = KEY_MATCH_FULL;
+				}
+			}
+			else if(state == VIEW_TEAMS){
+				userTeam = clientRequest;
+				
+				if( !dbAccess.teamIsFull(userTeam) ){
+					dbAccess.joinTeam(userName, userTeam);
+					reply = KEY_TEAM_AVAIL;
+					state = VIEW_LOBBY;
+				}
+				else{
+					reply = KEY_TEAM_FULL;
+				}
+			}
+			
+			else {
 				reply = "invalid";
 			}
 		} catch(Exception e) {
@@ -105,7 +148,7 @@ public class GameLogic {
 				}
 			}
 		} catch(Exception e) {
-			System.out.println("input process falied: " + e.getMessage());
+			System.out.println("input process failed: " + e.getMessage());
 			return "exit";
 		}
 
