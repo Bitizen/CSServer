@@ -32,7 +32,7 @@ public class CounterSwipeServer extends Thread {
 		while (listening) {
 			handleClientRequest(serverSocket);
 		}
- 
+
 		serverSocket.close();
 	}
  

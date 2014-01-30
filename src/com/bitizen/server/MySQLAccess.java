@@ -4,9 +4,9 @@ import java.sql.*;
 
 public class MySQLAccess {
 	 
-	private Statement stmt;
-	private CallableStatement cs;
-	private ResultSet rs;
+	private Statement stmt = null;
+	private CallableStatement cs = null;
+	private ResultSet rs = null;
 	private Connection con;
 	private final static String DB_URL = "jdbc:mysql://localhost:3306/COUNTERSWIPE";
 	private final static int MAX_TEAMPLAYERS = 3;
@@ -15,7 +15,7 @@ public class MySQLAccess {
 	public MySQLAccess(){
 		register();
 		connect();
-		createStatement();
+		
 	}
 	
 	public void register(){
@@ -49,6 +49,7 @@ public class MySQLAccess {
 			rs = cs.executeQuery();
 		} catch (SQLException e) {
 			e.printStackTrace();
+			e.getMessage();
 		}
 		
 		return rs;
