@@ -98,12 +98,11 @@ public class GameLogic {
 				}
 				else{
 					reply = KEY_MATCH_FULL;
-					state = VIEW_TEAMS; //edit out
 					
 				}
 			}
 			else if(state == VIEW_TEAMS){
-				reply = "Teams A or B?";
+				reply = "Team A or B?";
 				state = GET_USERTEAM;
 			}
 			else if(state == GET_USERTEAM){
@@ -122,21 +121,22 @@ public class GameLogic {
 			else if(state == VIEW_LOBBY){
 				
 				
-				ArrayList<String> players = new ArrayList<String>();
+				ArrayList<String> teamA_players = new ArrayList<String>();
+				ArrayList<String> teamB_players = new ArrayList<String>();
 				
 				ResultSet rs = dbAccess.retrievePlayersInTeam("A");
 				while(rs.next()){
 					//reply = dbAccess.retrievePlayersInTeam("A").getString("USERNAME");
-					players.add(rs.getString("Username"));
+					teamA_players.add(rs.getString("Username"));
 				}
 				
 				rs = dbAccess.retrievePlayersInTeam("B");
 				while(rs.next()){
 					//reply = dbAccess.retrievePlayersInTeam("B").getString("USERNAME");
-					players.add(rs.getString("Username"));
+					teamB_players.add(rs.getString("Username"));
 				}
 				
-				reply = "Team " + userTeam + " - " + players.toString();
+				reply = "Team " + userTeam + " - " + teamA_players.toString();
 				state = WAITING_READYUSER;
 			}		
 			else if(state == WAITING_READYUSER){
