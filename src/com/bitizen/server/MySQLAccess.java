@@ -9,8 +9,8 @@ public class MySQLAccess {
 	private ResultSet rs = null;
 	private Connection con;
 	private final static String DB_URL = "jdbc:mysql://localhost:3306/COUNTERSWIPE";
-	private final static int MAX_TEAMPLAYERS = 3;
 	private final static int MAX_MATCHPLAYERS = 6;
+	private final static int MAX_TEAMPLAYERS = 3;
 	
 	
 	public MySQLAccess(){
@@ -108,9 +108,9 @@ public class MySQLAccess {
 		try {
 			cs = con.prepareCall("{call checkIfUsernameAvailable(?)}");
 			cs.setString(1, username);
-			if(cs.executeQuery().absolute(1)){
+			if (cs.executeQuery().absolute(1)) {
 				return true;
-			}
+			} 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -119,13 +119,13 @@ public class MySQLAccess {
 	
 	public Boolean matchIsFull(String hostName){
 		try {
+			//cs = con.prepareCall("{call checkIfHostAvailable(?)}");
 			cs = con.prepareCall("{call countPlayersInMatch(?)}");
 			cs.setString(1, hostName);
 			if(cs.executeQuery().absolute(1)){
 				if(cs.getInt("PLAYER_COUNT") >= MAX_MATCHPLAYERS){
 					return true;
 				}
-				return true;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

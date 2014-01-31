@@ -11,13 +11,13 @@ public class MySQLAccessDemo {
 			dbAccess.connect();
 			dbAccess.createStatement();
 			
+			System.out.println("B: " + dbAccess.usernameIsTaken("dfsgs"));
 			ResultSet rs = dbAccess.retrieveMatches();
 			while (rs.next()) {    
 				
 					System.out.println("*" + rs.getString(1));
 	
 			}
-	
 		
 			
 
