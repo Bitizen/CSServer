@@ -88,6 +88,16 @@ public class MySQLAccess {
 			e.printStackTrace();
 		}
 	}
+
+	public void setStatusToIdle(String username){
+		try {
+			cs = con.prepareCall("{call setStatusToIdle(?)}");
+			cs.setString(1, username);
+			cs.execute();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	public Boolean allPlayersAreReady(String matchName){
 		try {
@@ -207,6 +217,83 @@ public class MySQLAccess {
 		    	e.printStackTrace();
 		    }
 	}
-	 
+	
+	/// NEW
+	
+	public void addMatch(String hostName){
+		try {
+			cs = con.prepareCall("{call addMatch(?)}");
+			cs.setString(1, hostName);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+	}
+	
+	public void addTwoTeams(){
+		try {
+			cs = con.prepareCall("{call addTwoTeams()}");
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
+	}
+	
+	public void attachTeamToMatch(int matchID, int teamID){
+		try {
+			cs = con.prepareCall("{call attachTeamToMatch(?,?)}");
+			cs.setInt(1, matchID);
+			cs.setInt(2, teamID);
+			cs.execute();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+	}
+	
+	public ResultSet returnLastMatchID(){
+		try {
+			cs = con.prepareCall("{call returnLastMatchID()}");
+			rs = cs.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			e.getMessage();
+		}
+		return rs;
+	}
+	
+	public ResultSet returnLastTwoTeamIDs(){
+		try {
+			cs = con.prepareCall("{call returnLastTwoTeamIDs()}");
+			rs = cs.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			e.getMessage();
+		}
+		return rs;
+	}
+	
+	public void setColorForPlayer(String color, String username){
+		try {
+			cs = con.prepareCall("{call setColorForPlayer(?,?)}");
+			cs.setString(1, color);
+			cs.setString(2, username);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			e.getMessage();
+		}
+	}
 
+	public void setColorForTeam(String color, String team, String match){
+		try {
+			cs = con.prepareCall("{call setColorForPlayer(?,?,?)}");
+			cs.setString(1, color);
+			cs.setString(2, team);
+			cs.setString(3, match);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			e.getMessage();
+		}
+	}
 }//end class
