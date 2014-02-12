@@ -9,8 +9,8 @@ public class MySQLAccess {
 	private ResultSet rs = null;
 	private Connection con;
 	private final static String DB_URL = "jdbc:mysql://localhost:3306/COUNTERSWIPE";
-	private final static int MAX_MATCHPLAYERS = 6;
 	private final static int MAX_TEAMPLAYERS = 3;
+	private final static int MAX_MATCHPLAYERS = 6;
 	
 	
 	public MySQLAccess(){
@@ -43,6 +43,29 @@ public class MySQLAccess {
 		}
 	}
 	
+	public Boolean usernameIsTaken(String username){
+		try {
+			cs = con.prepareCall("{call checkIfUsernameExists(?)}");
+			cs.setString(1, username);
+			
+			if(!cs.executeQuery().next()){
+				return false;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return true;
+	}
+	
+	public void addNewPlayer(String username){
+		try {
+			cs = con.prepareCall("{call addNewPlayer(?)}");
+			cs.setString(1, username);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	public ResultSet retrieveMatches(){
 		try {
@@ -56,9 +79,66 @@ public class MySQLAccess {
 		return rs;
 	}
 	
-	public ResultSet retrieveTeamNames(){
+	public Boolean matchIsFull(String hostName){
 		try {
-			cs = con.prepareCall("{call returnTeamNames()}");
+			cs = con.prepareCall("{call countPlayersInMatch(?)}");
+			cs.setString(1, hostName);
+			if(cs.executeQuery().next() && cs.getInt("PLAYER_COUNT") >= MAX_MATCHPLAYERS){
+				return true;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;	
+	}
+	
+	
+	public void joinMatch(String userName, String hostName){
+		try {
+			cs = con.prepareCall("{call joinMatch(?,?)}");
+			cs.setString(1, userName);
+			cs.setString(2, hostName);
+			cs.execute();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+	}
+	
+	
+	public Boolean teamIsFull(String teamName){
+		try {
+			cs = con.prepareCall("{call returnNumberOfPlayersInTeam(?)}");
+			cs.setString(1, teamName);
+			
+			if(cs.executeQuery().absolute(1)){
+				if(cs.getInt("PLAYER_COUNT") >= MAX_TEAMPLAYERS){
+					return true;
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	
+	public void joinTeam(String userName, String teamName, String matchName){
+		try {
+			cs = con.prepareCall("{call joinTeam(?,?,?)}");
+			cs.setString(1, userName);
+			cs.setString(2, teamName);
+			cs.setString(3, matchName);
+			cs.execute();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}	
+	}
+
+	public ResultSet returnPlayersInTeam(String teamName, String matchName){
+		try {
+			cs = con.prepareCall("{call returnPlayersInATeam(?,?)}");
+			cs.setString(1, teamName);
+			cs.setString(2, matchName);
 			rs = cs.executeQuery();
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -67,31 +147,10 @@ public class MySQLAccess {
 		return rs;		
 	}	
 	
-	public ResultSet retrievePlayersInTeam(String teamName){
-		try {
-			cs = con.prepareCall("{call returnPlayersInATeam(?)}");
-			cs.setString(1, teamName);
-			rs = cs.executeQuery();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		
-		return rs;		
-	}
-	
+
 	public void setStatusToReady(String username){
 		try {
 			cs = con.prepareCall("{call setStatusToReady(?)}");
-			cs.setString(1, username);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void setStatusToIdle(String username){
-		try {
-			cs = con.prepareCall("{call setStatusToIdle(?)}");
 			cs.setString(1, username);
 			cs.execute();
 		} catch (SQLException e) {
@@ -105,7 +164,7 @@ public class MySQLAccess {
 			cs.setString(1, matchName);
 			
 			if(cs.executeQuery().absolute(1)){
-				return cs.getBoolean("aBooleanResult");
+				return cs.getBoolean("ALL_PLAYERS_ARE_READY");
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -114,111 +173,15 @@ public class MySQLAccess {
 		
 	}
 	
-	public Boolean usernameIsTaken(String username){
-		try {
-			cs = con.prepareCall("{call checkIfUsernameAvailable(?)}");
-			cs.setString(1, username);
-			if (cs.executeQuery().absolute(1)) {
-				return true;
-			} 
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-	
-	public Boolean matchIsFull(String hostName){
-		try {
-			//cs = con.prepareCall("{call checkIfHostAvailable(?)}");
-			cs = con.prepareCall("{call countPlayersInMatch(?)}");
-			cs.setString(1, hostName);
-			if(cs.executeQuery().absolute(1)){
-				if(cs.getInt("PLAYER_COUNT") >= MAX_MATCHPLAYERS){
-					return true;
-				}
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;	
-	}
-	
-	public Boolean teamIsFull(String teamName){
-		try {
-			cs = con.prepareCall("{call checkIfTeamAvailable(?)}");
-			cs.setString(1, teamName);
-			
-			if(cs.executeQuery().absolute(1)){
-				if(cs.getInt("Result") >= MAX_TEAMPLAYERS){
-					return true;
-				}
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
 
 	
-	public void addUsername(String username){
-		try {
-			cs = con.prepareCall("{call addUsernameToCSDB(?)}");
-			cs.setString(1, username);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
 
-	public void hostMatch(String matchName){
-		try {
-			cs = con.prepareCall("{call addHostToCSDB(?)}");
-			cs.setString(1, matchName);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
 	
-	public void joinMatch(String userName, String hostName){
-		try {
-			cs = con.prepareCall("{call acceptMatchChosen(?,?)}");
-			cs.setString(1, userName);
-			cs.setString(2, hostName);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}		
-	}
-	
-	public void joinTeam(String userName, String teamName){
-		try {
-			cs = con.prepareCall("{call acceptTeamChosen(?,?)}");
-			cs.setString(1, userName);
-			cs.setString(2, teamName);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}	
-	}
 
-	public void close() {
-		    try {
-			      if (rs != null) {
-			        rs.close();
-			      }
-			      if (stmt != null) {
-			        stmt.close();
-			      }
-			      if (con != null) {
-			        con.close();
-			      }
-		    }catch (Exception e) {
-		    	e.printStackTrace();
-		    }
-	}
+
 	
-	/// NEW
+
+	/////////
 	
 	public void addMatch(String hostName){
 		try {
@@ -272,28 +235,38 @@ public class MySQLAccess {
 		return rs;
 	}
 	
-	public void setColorForPlayer(String color, String username){
+	////////
+	
+	public void hostMatch(String matchName){
 		try {
-			cs = con.prepareCall("{call setColorForPlayer(?,?)}");
-			cs.setString(1, color);
-			cs.setString(2, username);
-			cs.executeUpdate();
+			cs = con.prepareCall("{call addHostToCSDB(?)}");
+			cs.setString(1, matchName);
+			cs.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			e.getMessage();
 		}
 	}
+	
 
-	public void setColorForTeam(String color, String team, String match){
-		try {
-			cs = con.prepareCall("{call setColorForPlayer(?,?,?)}");
-			cs.setString(1, color);
-			cs.setString(2, team);
-			cs.setString(3, match);
-			cs.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			e.getMessage();
-		}
+
+
+
+	
+	public void close() {
+		    try {
+			      if (rs != null) {
+			        rs.close();
+			      }
+			      if (stmt != null) {
+			        stmt.close();
+			      }
+			      if (con != null) {
+			        con.close();
+			      }
+		    }catch (Exception e) {
+		    	e.printStackTrace();
+		    }
 	}
+	 
+
 }//end class
