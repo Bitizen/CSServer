@@ -152,7 +152,17 @@ public class MySQLAccess {
 		try {
 			cs = con.prepareCall("{call setStatusToReady(?)}");
 			cs.setString(1, username);
-			cs.execute();
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void setStatusToIdle(String username){
+		try {
+			cs = con.prepareCall("{call setStatusToIdle(?)}");
+			cs.setString(1, username);
+			cs.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -173,84 +183,26 @@ public class MySQLAccess {
 		
 	}
 	
-
-	
-
-	
-
-
-	
-
-	/////////
-	
-	public void addMatch(String hostName){
+	public void hostMatch(String hostName){
 		try {
-			cs = con.prepareCall("{call addMatch(?)}");
+			cs = con.prepareCall("{call hostMatch(?)}");
 			cs.setString(1, hostName);
 			cs.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}		
 	}
-	
-	public void addTwoTeams(){
+		
+	public void changePlayerMarker(String username, int markerID){
 		try {
-			cs = con.prepareCall("{call addTwoTeams()}");
+			cs = con.prepareCall("{call changePlayerMarker(?,?)}");
+			cs.setString(1, username);
+			cs.setInt(2, markerID);
 			cs.executeUpdate();
 		} catch (SQLException e) {
 			e.printStackTrace();
-		}	
-	}
-	
-	public void attachTeamToMatch(int matchID, int teamID){
-		try {
-			cs = con.prepareCall("{call attachTeamToMatch(?,?)}");
-			cs.setInt(1, matchID);
-			cs.setInt(2, teamID);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}		
-	}
-	
-	public ResultSet returnLastMatchID(){
-		try {
-			cs = con.prepareCall("{call returnLastMatchID()}");
-			rs = cs.executeQuery();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			e.getMessage();
-		}
-		return rs;
-	}
-	
-	public ResultSet returnLastTwoTeamIDs(){
-		try {
-			cs = con.prepareCall("{call returnLastTwoTeamIDs()}");
-			rs = cs.executeQuery();
-		} catch (SQLException e) {
-			e.printStackTrace();
-			e.getMessage();
-		}
-		return rs;
-	}
-	
-	////////
-	
-	public void hostMatch(String matchName){
-		try {
-			cs = con.prepareCall("{call addHostToCSDB(?)}");
-			cs.setString(1, matchName);
-			cs.execute();
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
 	}
-	
-
-
-
-
 	
 	public void close() {
 		    try {

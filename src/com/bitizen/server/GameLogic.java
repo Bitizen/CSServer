@@ -89,21 +89,7 @@ public class GameLogic {
 			    if (s[0].equalsIgnoreCase(KEY_HOST_LOGIN)
 			    		&& !dbAccess.usernameIsTaken(userName)) {
 			    	
-			    	dbAccess.addMatch(userName);
-			    	dbAccess.addTwoTeams();
-			    	
-			    	ResultSet rs = dbAccess.returnLastMatchID();
-			    	int mID = 0;
-			    	
-			    	rs = dbAccess.returnLastMatchID();
-			    	if (rs.absolute(1)) {
-			    		mID = rs.getInt(1);
-			    	}
-			    	
-			    	rs = dbAccess.returnLastTwoTeamIDs();
-			    	while (rs.next()) {
-			    		dbAccess.attachTeamToMatch(mID, rs.getInt(1));
-			    	}
+			    	dbAccess.hostMatch(userName);
 			    	
 					reply = KEY_HOST_AVAIL;
 			    	state = VIEW_HOSTLOBBY;
@@ -216,12 +202,12 @@ public class GameLogic {
 				ArrayList<String> playersA = new ArrayList<String>();
 				ArrayList<String> playersB = new ArrayList<String>();
 				
-				ResultSet rs = dbAccess.retrievePlayersInTeam("A");
+				ResultSet rs = dbAccess.returnPlayersInTeam("A", userMatch);
 				while(rs.next()){
 					playersA.add(rs.getString("Username"));
 				}
 				
-				rs = dbAccess.retrievePlayersInTeam("B");
+				rs = dbAccess.returnPlayersInTeam("B", userMatch);
 				while(rs.next()){
 					playersB.add(rs.getString("Username"));
 				}
@@ -233,6 +219,9 @@ public class GameLogic {
 			else {
 				reply = KEY_INVALID;
 			}
+		}
+			   
+			    
 		} catch(Exception e) {
 			System.out.println("input process falied: " + e.getMessage());
 			return "exit";
