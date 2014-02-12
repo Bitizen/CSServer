@@ -111,6 +111,12 @@ public class GameLogic {
 			    		&& !dbAccess.usernameIsTaken(userName)){
 					dbAccess.addUsername(userName);
 
+				userName = clientRequest;
+				
+				dbAccess.createStatement();
+				
+				if( !dbAccess.usernameIsTaken(userName) ){
+					dbAccess.addNewPlayer(userName);
 					reply = KEY_USERNAME_AVAIL;
 					state = VIEW_MATCHES;
 				} else{
@@ -125,7 +131,7 @@ public class GameLogic {
 				ResultSet rs = dbAccess.retrieveMatches();
 				while (rs.next()) {              
 					//reply = rs.getString("HOSTNAME");
-					matches.add(rs.getString("Hostname"));
+					matches.add(rs.getString("matchName"));
 				}
 				
 				reply = "Matches: " + matches.toString();
@@ -155,7 +161,7 @@ public class GameLogic {
 				
 				if( !dbAccess.teamIsFull(userTeam) ){
 					// EDIT
-					dbAccess.joinTeam(userName, userTeam);
+					dbAccess.joinTeam(userName, userTeam, userMatch);
 					reply = KEY_TEAM_AVAIL;
 					state = VIEW_LOBBY;
 				}
@@ -165,37 +171,32 @@ public class GameLogic {
 				}
 			}
 			else if(state == VIEW_LOBBY){
-				ArrayList<String> playersA = new ArrayList<String>();
-				ArrayList<String> playersB = new ArrayList<String>();
 				
-				ResultSet rs = dbAccess.retrievePlayersInTeam("A");
+				
+				ArrayList<String> teamA_players = new ArrayList<String>();
+				ArrayList<String> teamB_players = new ArrayList<String>();
+				
+				ResultSet rs = dbAccess.returnPlayersInTeam("A", userMatch);
 				while(rs.next()){
-					//reply = dbAccess.retrievePlayersInTeam("A").getString("USERNAME");
-					playersA.add(rs.getString("Username"));
+					teamA_players.add(rs.getString("PLAYER_NAME"));
 				}
 				
-				rs = dbAccess.retrievePlayersInTeam("B");
+				rs = dbAccess.returnPlayersInTeam("B", userMatch);
 				while(rs.next()){
-					//reply = dbAccess.retrievePlayersInTeam("B").getString("USERNAME");
-					playersB.add(rs.getString("Username"));
+					teamB_players.add(rs.getString("PLAYER_NAME"));
 				}
-
-				reply = "LOBBY-" + playersA.toString() + "-" + playersB.toString();
+				
+				if(userTeam.equalsIgnoreCase("a")){
+					reply = "Team A  - " + teamA_players.toString();
+				}
+				else if(userTeam.equalsIgnoreCase("b")){
+					reply = "Team B  - " + teamB_players.toString();
+				}
+				
+				
 				state = WAITING_READYUSER;
 			}	
 			else if(state == WAITING_READYUSER){
-				String str = clientRequest;
-				System.out.println("C: " + str);
-			    String[] s = str.split("[\\-]+");
-			    // CHANGEMYCOLOR-Blue
-			    if (s[0].equalsIgnoreCase(KEY_CHANGEMYCOLOR)) {
-				    s[1] = userColor;
-			    	dbAccess.setColorForPlayer(userColor, userName);
-			    } else if (s[0].equalsIgnoreCase(KEY_CHANGETEAMCOLOR)) {
-			    	// CHANGEMYCOLOR-Blue-Green
-			    	dbAccess.setColorForTeam(s[1], "A", userMatch);
-			    	dbAccess.setColorForTeam(s[1], "B", userMatch);
-			    }
 				
 				reply = KEY_READY_USER;				
 			}
