@@ -109,7 +109,7 @@ public class GameLogic {
 			    	state = VIEW_HOSTLOBBY;
 			    } else if (s[0].equalsIgnoreCase(KEY_REG_LOGIN)
 			    		&& !dbAccess.usernameIsTaken(userName)){
-					dbAccess.addUsername(userName);
+					dbAccess.addNewPlayer(userName);
 
 				userName = clientRequest;
 				
@@ -187,7 +187,7 @@ public class GameLogic {
 				}
 				
 				if(userTeam.equalsIgnoreCase("a")){
-					reply = "Team A  - " + teamA_players.toString();
+					reply = "A-" + teamA_players.toString();
 				}
 				else if(userTeam.equalsIgnoreCase("b")){
 					reply = "Team B  - " + teamB_players.toString();
