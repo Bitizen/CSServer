@@ -24,7 +24,8 @@ public class GameLogic {
 	private static final String KEY_IAMIDLE 		= "IAMIDLE";
 	private static final String KEY_HOST_LOGIN 		= "HOST";
 	private static final String KEY_REG_LOGIN 		= "REG";
-	private static final String KEY_CHANGEMYMARKER 	= "CHANGEMYMARKER";
+	private static final String KEY_CHANGEMYCOLOR 	= "CHANGEMYCOLOR";
+	private static final String KEY_CHANGETEAMCOLOR = "CHANGETEAMCOLOR";
 	
 	private static final String KEY_GET_USERNAME	= "username: ";
 	private static final String KEY_USERNAME_AVAIL 	= "uname available!";
@@ -44,7 +45,8 @@ public class GameLogic {
 	private String userName =  null;
 	private String userMatch = null;
 	private String userTeam = null;
-	private String userMarker = null;
+	private String userColor = null;
+	private String userTeamColor = null;
 	
 	private MySQLAccess dbAccess;
 
@@ -95,21 +97,21 @@ public class GameLogic {
 			    		&& !dbAccess.usernameIsTaken(userName)){
 					dbAccess.addNewPlayer(userName);
 
-					userName = clientRequest;
-					
-					dbAccess.createStatement();
-					
-					if( !dbAccess.usernameIsTaken(userName) ){
-						dbAccess.addNewPlayer(userName);
-						reply = KEY_USERNAME_AVAIL;
-						state = VIEW_MATCHES;
-					} else{
-						reply = KEY_USERNAME_TAKEN;
-						state = GET_USERNAME;
-					}
-			    }
+				userName = clientRequest;
+				
+				dbAccess.createStatement();
+				
+				if( !dbAccess.usernameIsTaken(userName) ){
+					dbAccess.addNewPlayer(userName);
+					reply = KEY_USERNAME_AVAIL;
+					state = VIEW_MATCHES;
+				} else{
+					reply = KEY_USERNAME_TAKEN;
+					state = GET_USERNAME;
+				}
 			}
 			else if(state == VIEW_MATCHES){
+				reply = "Matches: ";
 				ArrayList<String> matches = new ArrayList<String>();
 				
 				ResultSet rs = dbAccess.retrieveMatches();
@@ -143,7 +145,7 @@ public class GameLogic {
 			else if(state == GET_USERTEAM){
 				userTeam = clientRequest;
 				
-				if( !dbAccess.teamIsFull(userTeam) ){
+				if( !dbAccess.teamIsFull(userTeam, userMatch) ){
 					// EDIT
 					dbAccess.joinTeam(userName, userTeam, userMatch);
 					reply = KEY_TEAM_AVAIL;
@@ -170,22 +172,19 @@ public class GameLogic {
 					teamB_players.add(rs.getString("PLAYER_NAME"));
 				}
 				
-				reply = "LOBBY-" + teamA_players.toString() 
-						+ "-" + teamB_players.toString();
+				if(userTeam.equalsIgnoreCase("a")){
+					reply = "A-" + teamA_players.toString();
+				}
+				else if(userTeam.equalsIgnoreCase("b")){
+					reply = "Team B  - " + teamB_players.toString();
+				}
+				
 				
 				state = WAITING_READYUSER;
 			}	
 			else if(state == WAITING_READYUSER){
-				String str = clientRequest;
-			    String[] s = str.split("[\\-]+");
-			    // CHANGEMYMARKER-1
-			    if (s[0].equalsIgnoreCase(KEY_CHANGEMYMARKER)) {
-				    s[1] = userMarker;
-			    	dbAccess.changePlayerMarker(userName, Integer.parseInt(userMarker));
-			    }
 				
-				reply = KEY_READY_USER;		
-				
+				reply = KEY_READY_USER;				
 			}
 			else if(state == WAITING_READYMATCH){
 				reply = KEY_READY_MATCH;
@@ -200,26 +199,29 @@ public class GameLogic {
 			
 			// IF HOST
 			else if(state == VIEW_HOSTLOBBY) {
-				ArrayList<String> teamA_players = new ArrayList<String>();
-				ArrayList<String> teamB_players = new ArrayList<String>();
+				ArrayList<String> playersA = new ArrayList<String>();
+				ArrayList<String> playersB = new ArrayList<String>();
 				
 				ResultSet rs = dbAccess.returnPlayersInTeam("A", userMatch);
 				while(rs.next()){
-					teamA_players.add(rs.getString("PLAYER_NAME"));
+					playersA.add(rs.getString("Username"));
 				}
 				
 				rs = dbAccess.returnPlayersInTeam("B", userMatch);
 				while(rs.next()){
-					teamB_players.add(rs.getString("PLAYER_NAME"));
+					playersB.add(rs.getString("Username"));
 				}
 
-				reply = "HOSTLOBBY-" + teamA_players.toString() + "-" + teamB_players.toString();
+				reply = "HOSTLOBBY-" + playersA.toString() + "-" + playersB.toString();
 				state = WAITING_READYUSER;
 			}
 			
 			else {
 				reply = KEY_INVALID;
 			}
+		}
+			   
+			    
 		} catch(Exception e) {
 			System.out.println("input process falied: " + e.getMessage());
 			return "exit";

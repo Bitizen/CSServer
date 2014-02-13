@@ -1,6 +1,5 @@
 package com.bitizen.server;
 
-import java.sql.*;
 
 public class MySQLAccessDemo {
 	 public static void main(String args[]){
@@ -11,16 +10,9 @@ public class MySQLAccessDemo {
 			dbAccess.connect();
 			dbAccess.createStatement();
 			
-			System.out.println("B: " + dbAccess.usernameIsTaken("dfsgs"));
-			ResultSet rs = dbAccess.retrieveMatches();
-			while (rs.next()) {    
-				
-					System.out.println("*" + rs.getString(1));
-	
-			}
-		
+			System.out.println("teamisfull: " +  dbAccess.teamIsFull("a", "kashka"));
+			System.out.println("all players are ready: " + dbAccess.allPlayersAreReady("kashka"));
 			
-
 			 dbAccess.close();
 		}catch( Exception e ) {
 				e.printStackTrace();

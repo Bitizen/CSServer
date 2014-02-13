@@ -16,7 +16,6 @@ public class MySQLAccess {
 	public MySQLAccess(){
 		register();
 		connect();
-		
 	}
 	
 	public void register(){
@@ -105,20 +104,24 @@ public class MySQLAccess {
 	}
 	
 	
-	public Boolean teamIsFull(String teamName){
+	public Boolean teamIsFull(String teamName, String matchName){
 		try {
-			cs = con.prepareCall("{call returnNumberOfPlayersInTeam(?)}");
+			cs = con.prepareCall("{call returnNumberOfPlayersInTeam(?,?)}");
 			cs.setString(1, teamName);
+			cs.setString(2, matchName);
 			
-			if(cs.executeQuery().absolute(1)){
-				if(cs.getInt("PLAYER_COUNT") >= MAX_TEAMPLAYERS){
-					return true;
-				}
+			ResultSet rs = cs.executeQuery();
+			
+			if(rs.next()){
+				rs.last();
+
+				return (rs.getRow() < MAX_TEAMPLAYERS);
 			}
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		return false;
+		return true;
 	}
 	
 	
@@ -170,17 +173,59 @@ public class MySQLAccess {
 	
 	public Boolean allPlayersAreReady(String matchName){
 		try {
-			cs = con.prepareCall("{call allPlayersAreReady(?)}");
+			cs = con.prepareCall("{call returnNumberOfPlayersInMatch(?)}");
 			cs.setString(1, matchName);
 			
-			if(cs.executeQuery().absolute(1)){
-				return cs.getBoolean("ALL_PLAYERS_ARE_READY");
+			ResultSet rs = cs.executeQuery();
+			
+			if(rs.next()){
+				rs.last();
+			
+				return (rs.getRow() == getReadyPlayersInMatch(matchName));
 			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return false;	
+	}
+	
+	public int getReadyPlayersInMatch(String matchName){
+		
+		try {
+			cs = con.prepareCall("{call returnReadyPlayersInMatch(?)}");
+			cs.setString(1, matchName);
+			ResultSet rs = cs.executeQuery();
+			
+			if(rs.next()){
+				rs.last();
+				
+				return rs.getRow();
+			}
+			rs = cs.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+				
+		return 0;
+	}
+	
+	
+	public Boolean sampleProc(String matchName){
+		try {
+			cs = con.prepareCall("{call returnNumberOfPlayersInMatch(?)}");
+			cs.setString(1, matchName);
+			
+
+				if(cs.getInt("PLAYER_COUNT") >= MAX_TEAMPLAYERS){
+					return true;
+				}
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		return false;
-		
 	}
 	
 	public void hostMatch(String hostName){
