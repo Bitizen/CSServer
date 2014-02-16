@@ -114,14 +114,13 @@ public class MySQLAccess {
 			
 			if(rs.next()){
 				rs.last();
-
-				return (rs.getRow() < MAX_TEAMPLAYERS);
+				System.out.println("team members: " + rs.getRow());
+				return rs.getRow() >= MAX_TEAMPLAYERS ? true : false;
 			}
-			
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		return true;
+		return false;
 	}
 	
 	
