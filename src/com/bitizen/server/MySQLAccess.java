@@ -114,7 +114,7 @@ public class MySQLAccess {
 			
 			if(rs.next()){
 				rs.last();
-				System.out.println("team members: " + rs.getRow());
+				//System.out.println("team members: " + rs.getRow());
 				return rs.getRow() >= MAX_TEAMPLAYERS ? true : false;
 			}
 		} catch (SQLException e) {
@@ -170,6 +170,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// TODO CHECK -- why is return always false
 	public Boolean allPlayersAreReady(String matchName){
 		try {
 			cs = con.prepareCall("{call returnNumberOfPlayersInMatch(?)}");
