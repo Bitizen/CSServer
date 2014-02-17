@@ -163,7 +163,7 @@ public class GameLogic {
 				while(rs.next()){
 					teamB_players.add(rs.getString("PLAYER_NAME"));
 				}
-				
+
 				reply = "LOBBY-" + teamA_players.toString() 
 						+ "-" + teamB_players.toString();
 				
@@ -183,7 +183,8 @@ public class GameLogic {
 			else if(state == WAITING_READYMATCH){
 				reply = KEY_READY_MATCH;
 				
-				// TODO CHECK -- why is return always false
+				// TODO replace IF below w/ something like
+				// IF ((numberPlayersInMatch > 1) && (dbAccess.allPlayersAreReady)) {
 				if(dbAccess.allPlayersAreReady(userMatch)){
 					state = GAME_START;
 				}
