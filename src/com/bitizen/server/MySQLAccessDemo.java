@@ -10,11 +10,13 @@ public class MySQLAccessDemo {
 			dbAccess.connect();
 			dbAccess.createStatement();
 			
-			System.out.println("teamisfull: " +  dbAccess.teamIsFull("a", "kashka"));
-			System.out.println("all players are ready: " + dbAccess.allPlayersAreReady("kashka"));
+			System.out.println("Team is full? " +  dbAccess.teamIsFull("a", "kashka"));
+			System.out.println("All players in match are ready? " + dbAccess.allPlayersAreReady("kashka"));
+
 			
 			 dbAccess.close();
-		}catch( Exception e ) {
+		}
+		 catch( Exception e ) {
 				e.printStackTrace();
 				e.getMessage();
 		}

@@ -12,12 +12,13 @@ public class MySQLAccess {
 	private final static int MAX_TEAMPLAYERS = 3;
 	private final static int MAX_MATCHPLAYERS = 6;
 	
-	
+	// Constructor
 	public MySQLAccess(){
 		register();
 		connect();
 	}
 	
+	// Register the driver
 	public void register(){
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
@@ -26,6 +27,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// Establish connection with database
 	public void connect(){
 		try {
 			con = DriverManager.getConnection(DB_URL,"root", "");
@@ -34,6 +36,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// Create a Statement object for sending SQL statements to database
 	public void createStatement(){
 		try {
 			stmt = con.createStatement();
@@ -42,6 +45,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// Check if the username exists in table `player`
 	public Boolean usernameIsTaken(String username){
 		try {
 			cs = con.prepareCall("{call checkIfUsernameExists(?)}");
@@ -56,6 +60,7 @@ public class MySQLAccess {
 		return true;
 	}
 	
+	// Adds username to table `player` with default values. Called when username not exists
 	public void addNewPlayer(String username){
 		try {
 			cs = con.prepareCall("{call addNewPlayer(?)}");
@@ -66,6 +71,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// Retrieves existing match names from table `match`
 	public ResultSet retrieveMatches(){
 		try {
 			cs = con.prepareCall("{call returnHostNames()}");
@@ -78,6 +84,7 @@ public class MySQLAccess {
 		return rs;
 	}
 	
+	// Returns true if all 6 slots in the match are taken
 	public Boolean matchIsFull(String hostName){
 		try {
 			cs = con.prepareCall("{call countPlayersInMatch(?)}");
@@ -91,7 +98,7 @@ public class MySQLAccess {
 		return false;	
 	}
 	
-	
+	// Updates the matchID column of a user in table `player` 
 	public void joinMatch(String userName, String hostName){
 		try {
 			cs = con.prepareCall("{call joinMatch(?,?)}");
@@ -103,10 +110,10 @@ public class MySQLAccess {
 		}		
 	}
 	
-	
+	// Returns true if specified team in specified match already has 6 players
 	public Boolean teamIsFull(String teamName, String matchName){
 		try {
-			cs = con.prepareCall("{call returnNumberOfPlayersInTeam(?,?)}");
+			cs = con.prepareCall("{call returnPlayersInTeam(?,?)}");
 			cs.setString(1, teamName);
 			cs.setString(2, matchName);
 			
@@ -114,7 +121,7 @@ public class MySQLAccess {
 			
 			if(rs.next()){
 				rs.last();
-				//System.out.println("team members: " + rs.getRow());
+				System.out.println("players in team: " + rs.getRow());
 				return rs.getRow() >= MAX_TEAMPLAYERS ? true : false;
 			}
 		} catch (SQLException e) {
@@ -123,7 +130,7 @@ public class MySQLAccess {
 		return false;
 	}
 	
-	
+	// Joins the player to a specific team in specific match.
 	public void joinTeam(String userName, String teamName, String matchName){
 		try {
 			cs = con.prepareCall("{call joinTeam(?,?,?)}");
@@ -136,12 +143,14 @@ public class MySQLAccess {
 		}	
 	}
 
+	// Returns the players in specified team of specified match
 	public ResultSet returnPlayersInTeam(String teamName, String matchName){
 		try {
-			cs = con.prepareCall("{call returnPlayersInATeam(?,?)}");
+			cs = con.prepareCall("{call returnPlayersInTeam(?,?)}");
 			cs.setString(1, teamName);
 			cs.setString(2, matchName);
 			rs = cs.executeQuery();
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -149,7 +158,7 @@ public class MySQLAccess {
 		return rs;		
 	}	
 	
-
+	// Updates isReady field of user in table `player` to 1
 	public void setStatusToReady(String username){
 		try {
 			cs = con.prepareCall("{call setStatusToReady(?)}");
@@ -160,6 +169,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// Updates isReady field of user in table `player` to 0
 	public void setStatusToIdle(String username){
 		try {
 			cs = con.prepareCall("{call setStatusToIdle(?)}");
@@ -171,16 +181,17 @@ public class MySQLAccess {
 	}
 	
 	// TODO CHECK -- why is return always false
+	// Sorry. I wasn't able to upload the updated stored procedure for this
+	// previous one was returning the count, hence, always 1 row
 	public Boolean allPlayersAreReady(String matchName){
 		try {
-			cs = con.prepareCall("{call returnNumberOfPlayersInMatch(?)}");
+			cs = con.prepareCall("{call returnPlayersInMatch(?)}");
 			cs.setString(1, matchName);
-			
 			ResultSet rs = cs.executeQuery();
 			
 			if(rs.next()){
 				rs.last();
-			
+				
 				return (rs.getRow() == getReadyPlayersInMatch(matchName));
 			}
 			
@@ -191,6 +202,7 @@ public class MySQLAccess {
 		return false;	
 	}
 	
+	// Returns a count of ready players in the specified match
 	public int getReadyPlayersInMatch(String matchName){
 		
 		try {
@@ -211,23 +223,8 @@ public class MySQLAccess {
 		return 0;
 	}
 	
-	
-	public Boolean sampleProc(String matchName){
-		try {
-			cs = con.prepareCall("{call returnNumberOfPlayersInMatch(?)}");
-			cs.setString(1, matchName);
-			
-
-				if(cs.getInt("PLAYER_COUNT") >= MAX_TEAMPLAYERS){
-					return true;
-				}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-	
+	// Creates a new match
+	// Automatically creates two teams, then joins these 2 teams to the new match
 	public void hostMatch(String hostName){
 		try {
 			cs = con.prepareCall("{call hostMatch(?)}");
@@ -249,6 +246,7 @@ public class MySQLAccess {
 		}
 	}
 	
+	// Releases JDBC resources that were opened
 	public void close() {
 		    try {
 			      if (rs != null) {
