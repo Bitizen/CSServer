@@ -12,7 +12,7 @@ public class MySQLAccessDemo {
 			
 			System.out.println("Team is full? " +  dbAccess.teamIsFull("a", "kashka"));
 			System.out.println("All players in match are ready? " + dbAccess.allPlayersAreReady("kashka"));
-
+			System.out.println(dbAccess.eachTeamHasOnePlayer("kashka"));
 			
 			 dbAccess.close();
 		}

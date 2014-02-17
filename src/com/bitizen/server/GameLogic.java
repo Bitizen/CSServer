@@ -150,7 +150,6 @@ public class GameLogic {
 			}
 			else if(state == VIEW_LOBBY){
 				
-				
 				ArrayList<String> teamA_players = new ArrayList<String>();
 				ArrayList<String> teamB_players = new ArrayList<String>();
 				
@@ -183,10 +182,9 @@ public class GameLogic {
 			else if(state == WAITING_READYMATCH){
 				reply = KEY_READY_MATCH;
 				
-				// TODO replace IF below w/ something like
-				// IF ((numberPlayersInMatch > 1) && (dbAccess.allPlayersAreReady)) {
-				if(dbAccess.allPlayersAreReady(userMatch)){
+				if(dbAccess.allPlayersAreReady(userMatch) && dbAccess.eachTeamHasOnePlayer(userMatch)){
 					state = GAME_START;
+			
 				}
 			}
 			else if(state == GAME_START){

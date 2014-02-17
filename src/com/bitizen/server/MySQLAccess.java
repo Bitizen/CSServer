@@ -87,10 +87,15 @@ public class MySQLAccess {
 	// Returns true if all 6 slots in the match are taken
 	public Boolean matchIsFull(String hostName){
 		try {
-			cs = con.prepareCall("{call countPlayersInMatch(?)}");
+			cs = con.prepareCall("{call returnPlayersInMatch(?)}");
 			cs.setString(1, hostName);
-			if(cs.executeQuery().next() && cs.getInt("PLAYER_COUNT") >= MAX_MATCHPLAYERS){
-				return true;
+			
+			ResultSet rs = cs.executeQuery();
+			
+			if(rs.next()){
+				rs.last();
+				System.out.println("players in match: " + rs.getRow());
+				return rs.getRow() >= MAX_MATCHPLAYERS ? true : false;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -180,9 +185,7 @@ public class MySQLAccess {
 		}
 	}
 	
-	// TODO CHECK -- why is return always false
-	// Sorry. I wasn't able to upload the updated stored procedure for this
-	// previous one was returning the count, hence, always 1 row
+	// Returns true if all players in the specified match are ready
 	public Boolean allPlayersAreReady(String matchName){
 		try {
 			cs = con.prepareCall("{call returnPlayersInMatch(?)}");
@@ -200,6 +203,30 @@ public class MySQLAccess {
 		}
 		
 		return false;	
+	}
+	
+	// Returns false when a team has 0 players
+	public Boolean eachTeamHasOnePlayer(String matchName){
+		String[] teamNames = {"A", "B"};
+		try {
+			
+			cs = con.prepareCall("{call returnPlayersInTeam(?,?)}");
+			cs.setString(2, matchName);
+			
+			for(String teamName : teamNames){
+				cs.setString(1, teamName);
+				ResultSet rs = cs.executeQuery();
+				
+				//if no rows were retrieved, there are 0 players in that team
+				if(!rs.next()){
+					return false;
+				}
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return true;
 	}
 	
 	// Returns a count of ready players in the specified match
