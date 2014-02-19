@@ -2,13 +2,14 @@ package com.bitizen.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.ArrayList;
 
 public class CounterSwipeServer extends Thread {
 
+	private ArrayList<ConnectionRequestHandler> threads = new ArrayList<ConnectionRequestHandler>();
 	final static int _portNumber = 5559;
  
-	public static void main(String[] args) 
-	{
+	public static void main(String[] args) {
 		try {
 			new CounterSwipeServer().startServer();
 		} catch (Exception e) {
@@ -38,7 +39,9 @@ public class CounterSwipeServer extends Thread {
  
 	private void handleClientRequest(ServerSocket serverSocket) {
 		try {
-			new ConnectionRequestHandler(serverSocket.accept()).run();
+			ConnectionRequestHandler aThread = new ConnectionRequestHandler(serverSocket.accept());
+			threads.add(aThread);
+			aThread.start();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class ConnectionRequestHandler implements Runnable{
+public class ConnectionRequestHandler extends Thread {
 	private Socket _socket = null;
 	private PrintWriter _out = null;
 	private BufferedReader _in = null;
