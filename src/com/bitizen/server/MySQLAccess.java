@@ -11,6 +11,7 @@ public class MySQLAccess {
 	private final static String DB_URL = "jdbc:mysql://localhost:3306/COUNTERSWIPE";
 	private final static int MAX_TEAMPLAYERS = 3;
 	private final static int MAX_MATCHPLAYERS = 6;
+
 	
 	// Constructor
 	public MySQLAccess(){
@@ -261,7 +262,9 @@ public class MySQLAccess {
 			e.printStackTrace();
 		}		
 	}
-		
+
+	
+	// Changes player marker
 	public void changePlayerMarker(String username, int markerID){
 		try {
 			cs = con.prepareCall("{call changePlayerMarker(?,?)}");
@@ -272,6 +275,96 @@ public class MySQLAccess {
 			e.printStackTrace();
 		}
 	}
+	
+	
+	
+	 // Note that health check is also done within stored procedure 'reducePlayerHealth'
+	public void hit(String shooterName, int markerID, String userMatch, String userTeam){
+		try{
+			ResultSet markerOwner = returnOwnerOfMarker(markerID, userMatch);
+			
+			if(markerOwner != null){
+				if(markerOwner.getString("hostName").equalsIgnoreCase(userMatch) 
+						&& !markerOwner.getString("teamName").equalsIgnoreCase(userTeam)){
+					
+					if(markerOwner.getInt("health") > 0){
+						System.out.println("DO DAMAGE.");
+						reducePlayerHealth(markerOwner.getString("userName"));
+					}
+					else{
+						System.out.println("TARGET IS ALREADY DEAD");
+					}
+					
+				}
+				else{
+					System.out.println("DON'T HIT FRIENDS.");
+				}
+			}
+			else{
+				System.out.println("MARKER IS NOT ASSOCIATED WITH ANY PLAYER IN THIS MATCH");
+			}
+			
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+	}
+	
+	
+	// Returns null if the marker was not selected by anyone
+	public ResultSet returnOwnerOfMarker(int markerID, String hostName){
+		
+		try {
+			cs = con.prepareCall("{call returnMarkerOwner(?,?)}");
+			cs.setInt(1, markerID);
+			cs.setString(2, hostName);
+			ResultSet rs = cs.executeQuery();
+			System.out.println("rs: " + rs);
+			if(rs.next()){
+				System.out.println("owner of marker: " +  rs.getString("userName"));
+				return rs;
+			}
+			
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return rs;			
+	}
+	
+	
+
+	// Reduce player health by 1
+	public void reducePlayerHealth(String userName){
+		try {
+			cs = con.prepareCall("{call reducePlayerHealth(?)}");
+			cs.setString(1, userName);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+
+	// Returns int health
+	public int getHealth(String userName){
+		try {
+			cs = con.prepareCall("{call returnPlayerHealth(?)}");
+			cs.setString(1, userName);
+			ResultSet rs = cs.executeQuery();
+			
+			if(rs.next()){
+
+				return rs.getInt(1);
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return 0;
+	}
+	
 	
 	// Releases JDBC resources that were opened
 	public void close() {
