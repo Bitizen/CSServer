@@ -13,12 +13,9 @@ public class GameLogic {
 	private static final int VIEW_TEAMS 			= 5;
 	private static final int GET_USERTEAM			= 6;
 	private static final int VIEW_LOBBY  			= 7;
-	private static final int VIEW_HOSTLOBBY			= 10;
-	//private static final int WAITING_READYUSER		= 8;
 	private static final int WAITING_READYMATCH		= 8;
-	//private static final int WAITING_HOSTREADYUSER	= 12;
-	//private static final int WAITING_HOSTREADYMATCH	= 13;
 	private static final int GAME_START 			= 9;
+	private static final int RESULTS 				= 10;
 
 	private static final String KEY_IAMREADY 		= "IAMREADY";
 	private static final String KEY_IAMIDLE 		= "IAMIDLE";
@@ -28,6 +25,10 @@ public class GameLogic {
 	private static final String KEY_HIT				= "HIT";
 	private static final String KEY_GET_HIT			= "GETHIT";
 	private static final String KEY_GAMEOVER		= "GAMEOVER";
+	private static final String KEY_SHOWMATCHES		= "SHOWMATCHES";
+	private static final String KEY_PICKMATCH		= "PICKMATCH";
+	private static final String KEY_MARKERTAKEN		= "MARKERTAKEN";
+	private static final String KEY_MARKERCHANGED	= "MARKERCHANGED";
 	
 	private static final String KEY_GET_USERNAME	= "username: ";
 	private static final String KEY_USERNAME_AVAIL 	= "uname available!";
@@ -36,8 +37,6 @@ public class GameLogic {
 	private static final String KEY_MATCH_FULL 		= "match full";
 	private static final String KEY_TEAM_AVAIL 		= "team available";
 	private static final String KEY_TEAM_FULL 		= "team full";
-	private static final String KEY_INVALID			= "invalid";
-	//private static final String KEY_READY_USER 		= "waiting for user ready...";
 	private static final String KEY_READY_MATCH 	= "waiting for match ready...";
 	private static final String KEY_START_GAME 		= "start game";
 	private static final String KEY_HOST_AVAIL 		= "host ok";
@@ -66,17 +65,6 @@ public class GameLogic {
 
 			if(clientRequest != null && clientRequest.equalsIgnoreCase("exit"))
 				return "exit";
-			
-			/*if(clientRequest != null && clientRequest.equalsIgnoreCase(KEY_IAMREADY)) {
-				dbAccess.setStatusToReady(userName);
-				state = WAITING_READYMATCH;
-			}
-
-			if(clientRequest != null && clientRequest.equalsIgnoreCase(KEY_IAMIDLE)) {
-				dbAccess.setStatusToIdle(userName);
-				state = VIEW_LOBBY;
-			}*/
-		    
 		    
 			if(state == GET_USERNAME) {
 				reply = KEY_GET_USERNAME;
@@ -90,14 +78,16 @@ public class GameLogic {
 			    dbAccess.createStatement();
 				
 			    if (s[0].equalsIgnoreCase(KEY_HOST_LOGIN)
-			    		&& !dbAccess.usernameIsTaken(userName)) {
+			    		&& !dbAccess.userNameExists(userName)) {
 			    	dbAccess.hostMatch(userName);
+			    	userMatch = userName;
+			    	userTeam = "A";
 					reply = KEY_HOST_AVAIL;
-			    	state = VIEW_HOSTLOBBY;
+			    	state = VIEW_LOBBY;
 			    } else if (s[0].equalsIgnoreCase(KEY_REG_LOGIN)
-			    		&& !dbAccess.usernameIsTaken(userName)) {
+			    		&& !dbAccess.userNameExists(userName)) {
 			    	
-					if( !dbAccess.usernameIsTaken(userName) ) {
+					if( !dbAccess.userNameExists(userName) ) {
 						dbAccess.addNewPlayer(userName);
 						reply = KEY_USERNAME_AVAIL;
 						state = VIEW_MATCHES;
@@ -107,19 +97,25 @@ public class GameLogic {
 					}
 			    }
 			} else if(state == VIEW_MATCHES) {
-				ArrayList<String> matches = new ArrayList<String>();
-				
-				ResultSet rs = dbAccess.retrieveMatches();
-				while (rs.next()) {              
-					matches.add(rs.getString("matchName"));
+				if(clientRequest.equalsIgnoreCase(KEY_SHOWMATCHES)) {
+					ArrayList<String> matches = new ArrayList<String>();
+					
+					ResultSet rs = dbAccess.retrieveMatches();
+					while (rs.next()) {              
+						matches.add(rs.getString("matchName"));
+					}
+					
+					reply = "Matches: " + matches.toString();
 				}
 				
-				reply = "Matches: " + matches.toString();
-				state = GET_USERMATCH;
+				String str = clientRequest;
+			    String[] s = str.split("[\\-]+");
+			    if(s[0].equalsIgnoreCase(KEY_PICKMATCH)) {
+					state = GET_USERMATCH;
+			    	userMatch = s[1];
+			    }
 			}
 			else if(state == GET_USERMATCH) {
-				userMatch = clientRequest;
-				
 				if( !dbAccess.matchIsFull(userMatch) ) {
 					dbAccess.joinMatch(userName, userMatch);
 					
@@ -128,8 +124,7 @@ public class GameLogic {
 				}
 				else{
 					reply = KEY_MATCH_FULL;
-					state = VIEW_TEAMS;
-					
+					state = VIEW_MATCHES;
 				}
 			}
 			else if(state == VIEW_TEAMS) {
@@ -139,7 +134,8 @@ public class GameLogic {
 			else if(state == GET_USERTEAM) {
 				userTeam = clientRequest;
 				
-				if( !dbAccess.teamIsFull(userTeam, userMatch) ) {
+				if( dbAccess.teamIDExists(userTeam, userMatch)
+						&& !dbAccess.teamIsFull(userTeam, userMatch) ) {
 					dbAccess.joinTeam(userName, userTeam, userMatch);
 					reply = KEY_TEAM_AVAIL;
 					state = VIEW_LOBBY;
@@ -150,16 +146,18 @@ public class GameLogic {
 				}
 			}
 			else if(state == VIEW_LOBBY) {
-
 				String str = clientRequest;
 			    String[] s = str.split("[\\-]+");
 
 			    if(s[0] != null && s[0].equalsIgnoreCase(KEY_CHANGEMYMARKER)) {
-			    	userMarker = Integer.parseInt(s[1]);
-			    	dbAccess.changePlayerMarker(userName, userMarker);
-			    }
-			    
-			    if(clientRequest != null && clientRequest.equalsIgnoreCase(KEY_IAMREADY)) {
+			    	if(dbAccess.markerIsTaken(Integer.parseInt(s[1]), userMatch)) {
+				    	reply = KEY_MARKERTAKEN;
+				    } else {
+				    	userMarker = Integer.parseInt(s[1]);
+				    	dbAccess.changePlayerMarker(userName, userMarker);
+				    	reply = KEY_MARKERCHANGED;
+				    }
+			    } else if(clientRequest != null && clientRequest.equalsIgnoreCase(KEY_IAMREADY)) {
 					dbAccess.setStatusToReady(userName);
 					state = WAITING_READYMATCH;
 				} else {
@@ -207,29 +205,14 @@ public class GameLogic {
 			    
 			    if(dbAccess.getHealth(userName) == 0) {
 			    	reply = KEY_GAMEOVER;
+			    	state = RESULTS;
 			    } else if(dbAccess.getHealth(userName) < currentHp) {
-			    	//dbAccess.reducePlayerHealth(userName);
 			    	--currentHp;
 			    	reply = KEY_GET_HIT;
 			    }
 			}
-			
-			// IF HOST
-			else if(state == VIEW_HOSTLOBBY) {
-				ArrayList<String> playersA = new ArrayList<String>();
-				ArrayList<String> playersB = new ArrayList<String>();
+			else if(state == RESULTS) {
 				
-				ResultSet rs = dbAccess.returnPlayersInTeam("A", userMatch);
-				while(rs.next()) {
-					playersA.add(rs.getString("Username"));
-				}
-				
-				rs = dbAccess.returnPlayersInTeam("B", userMatch);
-				while(rs.next()) {
-					playersB.add(rs.getString("Username"));
-				}
-
-				reply = "HOSTLOBBY-" + playersA.toString() + "-" + playersB.toString();
 			}
 		
 		} catch(Exception e) {
