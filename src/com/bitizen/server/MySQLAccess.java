@@ -12,6 +12,7 @@ public class MySQLAccess {
 	private final static String DB_URL = "jdbc:mysql://localhost:3306/COUNTERSWIPE";
 	private final static int MAX_TEAMPLAYERS = 3;
 	private final static int MAX_MATCHPLAYERS = 6;
+	private final static String[] TEAM_NAMES = {"A", "B"};
 
 	
 	// Constructor
@@ -118,8 +119,21 @@ public class MySQLAccess {
 		return rs;			
 	}
 	
+	///////////////////////////////////////////////////
+	////////////// ------------- STRING ---------------
+	///////////////////////////////////////////////////	
 	
-
+	// Either 	returns null if no winner yet (both teams have at least 1 living member)
+	// Or 		returns winner String "A" or "B"
+	public String getWinningTeam(String matchName){
+		for(String teamName: TEAM_NAMES){
+			if(teamIsWipedOut(matchName, teamName)){
+				return	 teamName.equalsIgnoreCase(TEAM_NAMES[0]) ? TEAM_NAMES[1] : TEAM_NAMES[0];
+			}
+		}
+		return null;
+	}
+	
 	///////////////////////////////////////////////////
 	////////////// ------------- INT ------------------
 	///////////////////////////////////////////////////	
@@ -195,6 +209,20 @@ public class MySQLAccess {
 		return 0;
 	}
 	
+	// Returns count of match players who have selected markers
+	public int getNumberOfMarkerOwners(String matchName){
+		try {
+			cs = con.prepareCall("{ call GET_MARKEROWNERCOUNT(?,?) }");
+			cs.setString(1, matchName);
+			cs.registerOutParameter(2, Types.INTEGER);
+			cs.executeQuery();
+			//System.out.println("number of players in team: " + cs.getInt(3));
+			return cs.getInt(2);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
 
 	///////////////////////////////////////////////////
 	////////////// ------------- BOOLEAN --------------
@@ -214,6 +242,7 @@ public class MySQLAccess {
 	public Boolean allPlayersAreReady(String matchName){
 		return (getNumberOfMatchPlayers(matchName) == getReadyPlayersInMatch(matchName));
 	}
+	
 
 	// Returns true if teamID exists in table `team`
 	public Boolean teamIDExists(String userTeam, String userMatch){
@@ -254,9 +283,9 @@ public class MySQLAccess {
 	
 	// Returns false when a team has 0 players
 	public Boolean eachTeamHasOnePlayer(String matchName){
-		String[] teamNames = {"A", "B"};
 		
-		for(String teamName: teamNames){
+		
+		for(String teamName: TEAM_NAMES){
 			if(getNumberOfTeamPlayers(teamName, matchName) < 1){
 				return false;
 			}
@@ -294,6 +323,29 @@ public class MySQLAccess {
 		return true;		
 	}
 	
+	// Returns true if team has 0 living members
+	public Boolean teamIsWipedOut(String matchName, String teamName){
+		try {
+			cs = con.prepareCall("{call GET_TEAMNAME_AND_ALIVECOUNT(?,?)}");
+			cs.setString(1, matchName);
+			cs.setString(2, teamName);
+			ResultSet rs = cs.executeQuery();
+			
+			if(!rs.next()){
+				return true;
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+		return false;
+	}
+		
+	// Returns true if all players in the match have markers
+	public Boolean allPlayersHaveMarkers(String matchName){
+		return (getNumberOfMatchPlayers(matchName) == getNumberOfMarkerOwners(matchName));
+	}
+		
 	//////////////////////////////////////////////////////////////
 	////////////// ------ VOID / INSERT / UPDATE / DELETE --------
 	/////////////////////////////////////////////////////////////
@@ -428,9 +480,9 @@ public class MySQLAccess {
 	// Deletes player from all affected tables
 	public void deletePlayer(String userName){
 		if(userNameExists(userName)){
-			deletePlayerFromPlayers(userName);
-			deletePlayerFromTeam(userName);
 			deletePlayerFromMarker(userName);
+			deletePlayerFromTeam(userName);
+			deletePlayerFromPlayers(userName);
 		}
 		else{
 			System.out.println("DELETE FAILED. PLAYER DOES NOT EXIST IN TABLE PLAYER.");
@@ -470,18 +522,34 @@ public class MySQLAccess {
 		}	
 	}
 	
-	// Deletes host/match from all affected tables
-	// Reverts matchID of all affected players to 0
-	public void deleteHost(String hostName){
+	
+	// Removes Host from everything that makes him a host
+	// and sets his isHost to 0
+	public void stopHosting(String hostName){
 		if(matchNameExists(hostName)){
-			deleteHostFromMatch(hostName);
-			deleteHostFromTeams(hostName);
-			deleteTeamsOfHost(hostName);
+			setStatusToIdle(hostName);
+			deletePlayerFromMarker(hostName);
+			setIsHostToZero(hostName);
 			resetMatchIDOfPlayers(hostName);
+			deletePlayerFromTeam(hostName);
+			deleteTeamsOfHost(hostName);
+			deleteHostFromTeams(hostName);
+			deleteHostFromMatch(hostName);
 		}
 		else{
 			System.out.println("DELETE FAILED. MATCH DOES NOT EXIST IN MATCH TABLE.");
 		}
+	}
+
+	// Sets isHost to 0
+	public void setIsHostToZero(String hostName){
+		try {
+			cs = con.prepareCall("{call SET_ISHOST_TO_ZERO(?)}");
+			cs.setString(1, hostName);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
 	}
 	
 	// Deletes host from table MATCH
@@ -528,4 +596,47 @@ public class MySQLAccess {
 			e.printStackTrace();
 		}
 	}
+
+	// Removes Player completely
+	public void logout(String userName){
+		deletePlayerFromMarker(userName); //remove player from playerXmarker
+		deletePlayerFromTeam(userName);   //remove player from team
+		leaveMatch(userName);             //remove player from match
+		deletePlayerFromPlayers(userName);//remove player from player
+
+	}
+	
+	// Removes the player from match
+	// by setting the player's match id to 0
+	public void leaveMatch(String userName){
+		setStatusToIdle(userName);
+		deletePlayerFromMarker(userName);
+		deletePlayerFromTeam(userName);
+		try {
+			cs = con.prepareCall("{call SET_MATCHID_TO_ZERO(?)}");
+			cs.setString(1, userName);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+	}
+
+	// Removes the player from team
+	public void leaveTeam(String userName){
+		setStatusToIdle(userName);
+		deletePlayerFromMarker(userName);
+		deletePlayerFromTeam(userName);
+	}
+	
+	// Reduce player health by 1
+	public void restoreHealth(String userName){
+		try {
+			cs = con.prepareCall("{call SET_HEALTH_TO_MAX(?)}");
+			cs.setString(1, userName);
+			cs.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
 }//end class
